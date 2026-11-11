@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:ruta*", "destination": "https://NOMBRE-DE-TU-APP.herokuapp.com/api/:ruta*" },
+    { "source": "/api/:ruta*", "destination": "https://panel-back-a177ea6b7679.herokuapp.com/api/:ruta*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
