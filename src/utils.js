@@ -2,16 +2,16 @@
 
 // Estado de la red → color de la paleta de estados (siempre acompañado de etiqueta, nunca solo color)
 export const COLOR_TIPO = {
-  principal: '#0ca30c', // good
-  redundante: '#fab219', // warning
-  redundante2: '#ec835a', // serious (segunda red redundante)
-  sin_conexion: '#d03b3b', // critical
-  sin_datos: '#c3c2b7', // neutro
-  desconocida: '#c3c2b7',
+  principal: 'var(--red-principal)', // Starlink
+  redundante: 'var(--red-sim1)', // primera SIM
+  redundante2: 'var(--red-sim2)', // segunda SIM
+  sin_conexion: 'var(--red-corte)',
+  sin_datos: 'var(--red-sindatos)',
+  desconocida: 'var(--red-sindatos)',
 };
-export const TINTA_SOBRE = { redundante: '#0b0b0b', redundante2: '#ffffff' };
+// Los valores reales viven en styles.css (cambian con el tema claro/oscuro)
 
-// Color estable por red: Starlink verde; redundantes ámbar/naranja según su AS (no según el orden de aparición)
+// Color estable por red: Starlink azul; redundantes ámbar/violeta según su AS (no según el orden de aparición)
 export function colorDeRed(r, redundantes = []) {
   if (!r) return COLOR_TIPO.sin_datos;
   if (r.tipo === 'redundante') {

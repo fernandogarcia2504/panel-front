@@ -254,8 +254,18 @@ function Motocarros() {
 function TokenNuevo({ nombre, token, onCerrar }) {
   // Dirección pública de la central (Heroku). Se define al compilar el panel en Vercel: VITE_CENTRAL_URL
   const central = import.meta.env.VITE_CENTRAL_URL || 'https://NOMBRE-DE-TU-APP.herokuapp.com';
-  const config = JSON.stringify({ central, token }, null, 2);
+  const config = JSON.stringify({ motocarro: nombre, central, token }, null, 2);
   const [copiado, setCopiado] = useState(false);
+  const [descargado, setDescargado] = useState(false);
+  // Archivo listo para la carpeta "configs" de la memoria USB de instalación
+  const descargar = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([config + '\n'], { type: 'application/json' }));
+    a.download = `config-${nombre.replace(/[^\w\- áéíóúÁÉÍÓÚñÑ]+/g, '_')}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    setDescargado(true);
+  };
   const copiar = async () => {
     try {
       await navigator.clipboard.writeText(config);
@@ -268,13 +278,16 @@ function TokenNuevo({ nombre, token, onCerrar }) {
     <div className="tarjeta token-nuevo">
       <h2 className="h2-tarjeta">Token de {nombre}</h2>
       <p>
-        Guárdalo ahora: <strong>no se vuelve a mostrar</strong>. Pon este contenido en el archivo <code>config.json</code>{' '}
-        junto al agente de esa PC:
+        Descarga el archivo ahora: <strong>el token no se vuelve a mostrar</strong>. Ponlo en la carpeta{' '}
+        <code>configs</code> de la memoria USB de instalación; el instalador lo mostrará en la lista de motocarros.
       </p>
       <pre className="codigo">{config}</pre>
       <div className="acciones">
         <button className="btn btn-secundario" onClick={copiar}>
-          {copiado ? '✓ Copiado' : 'Copiar'}
+          {copiado ? '✓ Copiado' : 'Copiar texto'}
+        </button>
+        <button className="btn btn-secundario" onClick={descargar}>
+          {descargado ? '✓ Descargado' : 'Descargar archivo'}
         </button>
         <button className="btn" onClick={onCerrar}>
           Ya lo guardé
