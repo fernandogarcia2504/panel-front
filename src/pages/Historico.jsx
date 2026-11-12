@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../api.js';
+import { useFlota } from '../context/FlotaContext.jsx';
 import { usePeriodico, useRedundantes } from '../hooks.js';
 import { Cargando, Leyenda, RedChip, Stat, useTooltip } from '../components/comunes.jsx';
 import { COLOR_TIPO, fechaLocal, fmtBytes, fmtClave, fmtDur, fmtPct } from '../utils.js';
@@ -88,7 +89,8 @@ function GraficaDias({ dias }) {
 export default function Historico() {
   const redundantes = useRedundantes();
   const [rango, setRango] = useState({ desde: haceDias(30), hasta: hoy() });
-  const [datos, error] = usePeriodico(() => api.get(`/operaciones/resumen${qs(rango)}`), 120_000, [rango.desde, rango.hasta]);
+  const { flota } = useFlota();
+  const [datos, error] = usePeriodico(() => api.get(`/operaciones/resumen${qs({ ...rango, flota })}`), 120_000, [rango.desde, rango.hasta, flota]);
 
   return (
     <section>

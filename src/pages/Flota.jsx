@@ -1,13 +1,20 @@
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api.js';
+import { api, qs } from '../api.js';
+import { useFlota } from '../context/FlotaContext.jsx';
 import { usePeriodico, useRedundantes } from '../hooks.js';
 import { Cargando, EstadoChip, Leyenda, RedChip, Stat } from '../components/comunes.jsx';
+import { CicloSim, RouterChip, SimChip } from '../components/RouterIc2.jsx';
 import { COLOR_TIPO, colorDeRed, fmtBytes, fmtClave, fmtDur, fmtFechaHora, fmtPct, hace, plural, TIPOS_CAMBIO } from '../utils.js';
 
 export default function Flota() {
   const navigate = useNavigate();
   const redundantes = useRedundantes();
-  const [datos, error] = usePeriodico(() => api.get('/flota'), 10_000);
+  const { flota, actual, flotas } = useFlota();
+  const [datos, error] = usePeriodico(() => api.get(`/flota${qs({ flota })}`), 10_000, [flota]);
+  const verFlota = !flota && flotas.length > 1;
+  // InControl2 se sincroniza cada ~10 min en la central: basta con refrescar cada minuto
+  const [ic2] = usePeriodico(() => api.get('/incontrol/flota').catch(() => null), 60_000);
+  const routers = ic2?.porAgente ?? {};
 
   if (!datos) return error ? <div className="alerta">{error}</div> : <Cargando />;
   const { resumen, agentes } = datos;
@@ -16,7 +23,7 @@ export default function Flota() {
     <section>
       <div className="encabezado">
         <div>
-          <h1>Flota en vivo</h1>
+          <h1>{actual ? actual.nombre : flotas.length > 1 ? 'Todas las flotas' : 'Flota en vivo'}</h1>
           <p className="muted subtitulo">Por qué red está saliendo cada motocarro ahora mismo. Se actualiza cada 10 s.</p>
         </div>
         <span className={`en-vivo${error ? ' fuera' : ''}`}>
@@ -27,7 +34,7 @@ export default function Flota() {
 
       {error && <div className="alerta">Sin conexión con la central: {error}</div>}
 
-      <div className="stats">
+      <div className={`stats${ic2 ? ' stats-5' : ''}`}>
         <Stat titulo="Operando" valor={`${resumen.operando} / ${resumen.total}`} />
         <Stat titulo="En Starlink" valor={resumen.enPrincipal} tono={resumen.enPrincipal ? 'ok' : undefined} />
         <Stat titulo="En SIM (redundante)" valor={resumen.enRedundante} tono={resumen.enRedundante ? 'aviso' : undefined} />
@@ -37,6 +44,14 @@ export default function Flota() {
           tono={resumen.sinSenal ? 'mal' : undefined}
           detalle="en horario y sin reportarse"
         />
+        {ic2 && (
+          <Stat
+            titulo="SIM no disponible"
+            valor={Object.values(routers).filter((r) => r.celular?.simDisponible === false).length}
+            tono={Object.values(routers).some((r) => r.celular?.simDisponible === false) ? 'mal' : undefined}
+            detalle="sin respaldo para failover (InControl2)"
+          />
+        )}
       </div>
 
       {agentes.length > 0 && (
@@ -60,7 +75,8 @@ export default function Flota() {
 
       {!agentes.length ? (
         <div className="tarjeta vacio">
-          Aún no hay motocarros. Dalos de alta en <strong>Configuración → Motocarros</strong>.
+          {actual ? `La flota ${actual.nombre} no tiene motocarros.` : 'Aún no hay motocarros.'} Dalos de alta en{' '}
+          <strong>Configuración → Motocarros</strong>.
         </div>
       ) : (
         <div className="tabla-wrap">
@@ -74,6 +90,7 @@ export default function Flota() {
                 <th className="num">Failovers</th>
                 <th className="num">Sin conexión</th>
                 <th className="num">Datos en SIM</th>
+                <th>Router · SIM (InControl2)</th>
                 <th>Último reporte</th>
               </tr>
             </thead>
@@ -85,6 +102,7 @@ export default function Flota() {
                   <tr key={a.id} className={`clicable${a.estado === 'sin_senal' ? ' alerta-fila' : ''}`} onClick={() => navigate(`/motocarros/${a.id}`)}>
                     <td className="sin-corte">
                       <strong>{a.nombre}</strong>
+                      {verFlota && a.flota && <div className="pequeno">{a.flota}</div>}
                       {a.notas && <div className="muted pequeno">{a.notas}</div>}
                     </td>
                     <td>
@@ -125,6 +143,19 @@ export default function Flota() {
                     </td>
                     <td className="num">{t ? plural(t.cortes, 'corte', 'cortes') : '—'}</td>
                     <td className="num">{t ? fmtBytes(t.bytesRedundantes) : '—'}</td>
+                    <td>
+                      {routers[a.id] ? (
+                        <div className="chips-columna">
+                          <RouterChip estado={routers[a.id].estado} />
+                          <SimChip celular={routers[a.id].celular} />
+                          <span className="pequeno muted">
+                            Ciclo: <CicloSim ciclo={routers[a.id].ciclo} compacto />
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="muted pequeno">sin enlazar</span>
+                      )}
+                    </td>
                     <td>
                       <span className={a.estado === 'sin_senal' ? 'texto-mal' : undefined}>{hace(a.ultimaVez)}</span>
                       {!hoy && a.operacion && <div className="muted pequeno">datos de {fmtClave(a.operacion.clave)}</div>}

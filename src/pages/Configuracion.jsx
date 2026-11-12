@@ -3,12 +3,16 @@ import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { olvidarRedes } from '../hooks.js';
 import { Cargando, RedChip } from '../components/comunes.jsx';
-import { DIAS, fmtFechaHora, hace } from '../utils.js';
+import { DIAS, ROLES, fmtFechaHora, hace } from '../utils.js';
+import InControl from '../components/InControlConfig.jsx';
+import { useFlota } from '../context/FlotaContext.jsx';
 
 const PESTANAS = [
   { id: 'motocarros', etiqueta: 'Motocarros' },
+  { id: 'flotas', etiqueta: 'Flotas' },
   { id: 'horario', etiqueta: 'Horario y medición' },
   { id: 'redes', etiqueta: 'Redes' },
+  { id: 'incontrol', etiqueta: 'InControl2' },
   { id: 'usuarios', etiqueta: 'Usuarios' },
 ];
 const ZONAS = ['America/Mexico_City', 'America/Monterrey', 'America/Merida', 'America/Cancun', 'America/Chihuahua', 'America/Hermosillo', 'America/Mazatlan', 'America/Tijuana'];
@@ -28,10 +32,142 @@ export default function Configuracion() {
         ))}
       </div>
       {pestana === 'motocarros' && <Motocarros />}
+      {pestana === 'flotas' && <Flotas />}
       {pestana === 'horario' && <HorarioYMedicion />}
       {pestana === 'redes' && <Redes />}
+      {pestana === 'incontrol' && <InControl />}
       {pestana === 'usuarios' && <Usuarios />}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------------
+function Flotas() {
+  const { user } = useAuth();
+  const admin = user?.rol === 'admin';
+  const { flotas, recargar } = useFlota();
+  const [editando, setEditando] = useState(null); // { id?, nombre, notas, activa }
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    recargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function guardar(e) {
+    e.preventDefault();
+    setMsg('');
+    try {
+      const cuerpo = { nombre: editando.nombre, notas: editando.notas, activa: editando.activa };
+      if (editando.id) await api.put(`/flotas/${editando.id}`, cuerpo);
+      else await api.post('/flotas', cuerpo);
+      setEditando(null);
+      setMsg('✓ Flota guardada');
+      recargar();
+    } catch (err) {
+      setMsg(err.message);
+    }
+  }
+
+  async function borrar(f) {
+    if (!window.confirm(`¿Borrar la flota ${f.nombre}?`)) return;
+    setMsg('');
+    try {
+      await api.del(`/flotas/${f.id}`);
+      recargar();
+    } catch (err) {
+      setMsg(err.message);
+    }
+  }
+
+  return (
+    <>
+      <p className="muted subtitulo intro-pestana">
+        Las flotas agrupan motocarros dentro del portal (no se sincronizan con InControl2). Elige la flota que quieres ver en
+        el selector de la barra superior.
+      </p>
+      {msg && <div className={msg.startsWith('✓') ? 'alerta alerta-ok' : 'alerta'}>{msg}</div>}
+      {admin &&
+        (editando ? (
+          <form className="tarjeta formulario" onSubmit={guardar}>
+            <h2 className="h2-tarjeta">{editando.id ? `Editar ${editando.nombre}` : 'Nueva flota'}</h2>
+            <div className="rejilla">
+              <label>
+                Nombre *
+                <input value={editando.nombre} onChange={(e) => setEditando({ ...editando, nombre: e.target.value })} maxLength={60} required placeholder="Ej. Flota Oaxaca" />
+              </label>
+              <label>
+                Notas
+                <input value={editando.notas ?? ''} onChange={(e) => setEditando({ ...editando, notas: e.target.value })} maxLength={300} placeholder="Región, cliente, responsable…" />
+              </label>
+              {editando.id && (
+                <label className="check ancho-completo">
+                  <input type="checkbox" checked={editando.activa} onChange={(e) => setEditando({ ...editando, activa: e.target.checked })} />
+                  Activa (las flotas inactivas no se ofrecen al dar de alta motocarros)
+                </label>
+              )}
+            </div>
+            <div className="acciones">
+              <button type="button" className="btn btn-secundario" onClick={() => setEditando(null)}>
+                Cancelar
+              </button>
+              <button className="btn">{editando.id ? 'Guardar' : 'Crear flota'}</button>
+            </div>
+          </form>
+        ) : (
+          <div className="acciones acciones-izq">
+            <button className="btn" onClick={() => setEditando({ nombre: '', notas: '', activa: true })}>
+              Agregar flota
+            </button>
+          </div>
+        ))}
+      <div className="tabla-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Flota</th>
+              <th className="num">Motocarros</th>
+              <th>Creada</th>
+              {admin && <th />}
+            </tr>
+          </thead>
+          <tbody>
+            {flotas.map((f) => (
+              <tr key={f.id} className={f.activa ? '' : 'inactivo'}>
+                <td>
+                  <strong>{f.nombre}</strong>
+                  {!f.activa && <span className="chip chip-neutro">Inactiva</span>}
+                  {f.notas && <div className="muted pequeno">{f.notas}</div>}
+                </td>
+                <td className="num">{f.motocarros}</td>
+                <td>{fmtFechaHora(f.creada)}</td>
+                {admin && (
+                  <td>
+                    <div className="acciones-fila">
+                      <button className="btn-link" onClick={() => setEditando({ ...f })}>
+                        Editar
+                      </button>
+                      {f.motocarros === 0 && (
+                        <button className="btn-link texto-mal" onClick={() => borrar(f)}>
+                          Borrar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+            {!flotas.length && (
+              <tr>
+                <td colSpan={4} className="vacio">
+                  Aún no hay flotas.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -87,6 +223,8 @@ function Motocarros() {
   const [token, setToken] = useState(null); // {nombre, token}
   const [error, setError] = useState('');
   const admin = user?.rol === 'admin';
+  const { flotas, flota, recargar: recargarFlotas } = useFlota();
+  const flotaPorDefecto = flota || (flotas.find((f) => f.activa)?.id ?? '');
 
   const cargar = () => api.get('/agentes').then(setLista).catch((e) => setError(e.message));
   useEffect(() => {
@@ -98,7 +236,13 @@ function Motocarros() {
     e.preventDefault();
     setError('');
     try {
-      const cuerpo = { nombre: editando.nombre, notas: editando.notas, horario: editando.horario, activo: editando.activo };
+      const cuerpo = {
+        nombre: editando.nombre,
+        notas: editando.notas,
+        horario: editando.horario,
+        activo: editando.activo,
+        flotaId: editando.flotaId ? Number(editando.flotaId) : null,
+      };
       if (editando.id) await api.put(`/agentes/${editando.id}`, cuerpo);
       else {
         const nuevo = await api.post('/agentes', cuerpo);
@@ -106,6 +250,7 @@ function Motocarros() {
       }
       setEditando(null);
       cargar();
+      recargarFlotas();
     } catch (err) {
       setError(err.message);
     }
@@ -147,8 +292,23 @@ function Motocarros() {
               <input value={editando.nombre} onChange={(e) => setEditando({ ...editando, nombre: e.target.value })} maxLength={60} required placeholder="Ej. Motocarro 07" />
             </label>
             <label>
+              Flota *
+              <select value={editando.flotaId ?? ''} onChange={(e) => setEditando({ ...editando, flotaId: e.target.value })} required>
+                <option value="" disabled>
+                  Selecciona…
+                </option>
+                {flotas
+                  .filter((f) => f.activa || String(f.id) === String(editando.flotaId))
+                  .map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nombre}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="ancho-completo">
               Notas
-              <input value={editando.notas ?? ''} onChange={(e) => setEditando({ ...editando, notas: e.target.value })} maxLength={300} placeholder="Ruta, placas, responsable…" />
+              <input value={editando.notas ?? ''} onChange={(e) => setEditando({ ...editando, notas: e.target.value })} maxLength={300} placeholder="Ruta, responsable…" />
             </label>
             <label className="check ancho-completo">
               <input
@@ -180,7 +340,7 @@ function Motocarros() {
       ) : (
         admin && (
           <div className="acciones acciones-izq">
-            <button className="btn" onClick={() => setEditando({ nombre: '', notas: '', horario: null, activo: true })}>
+            <button className="btn" onClick={() => setEditando({ nombre: '', notas: '', horario: null, activo: true, flotaId: flotaPorDefecto })}>
               Agregar motocarro
             </button>
           </div>
@@ -192,6 +352,7 @@ function Motocarros() {
           <thead>
             <tr>
               <th>Motocarro</th>
+              <th>Flota</th>
               <th>Horario</th>
               <th>Agente</th>
               <th>Último reporte</th>
@@ -206,6 +367,7 @@ function Motocarros() {
                   {!a.activo && <span className="chip chip-neutro">Desactivado</span>}
                   {a.notas && <div className="muted pequeno">{a.notas}</div>}
                 </td>
+                <td className="sin-corte">{a.flota ?? <span className="muted">—</span>}</td>
                 <td>
                   {a.horario ? (
                     <>
@@ -239,7 +401,7 @@ function Motocarros() {
             ))}
             {!lista.length && (
               <tr>
-                <td colSpan={5} className="vacio">
+                <td colSpan={6} className="vacio">
                   Agrega el primer motocarro para obtener su token de instalación.
                 </td>
               </tr>
@@ -566,8 +728,8 @@ function Usuarios() {
                 <label>
                   Rol
                   <select value={nuevo.rol} onChange={(e) => setNuevo({ ...nuevo, rol: e.target.value })}>
-                    <option value="admin">Administrador</option>
-                    <option value="lectura">Solo lectura</option>
+                    <option value="soporte">{ROLES.soporte} (sin inventario)</option>
+                    <option value="admin">{ROLES.admin}</option>
                   </select>
                 </label>
               </div>
@@ -580,7 +742,7 @@ function Usuarios() {
             </form>
           ) : (
             <div className="acciones acciones-izq">
-              <button className="btn" onClick={() => setNuevo({ username: '', nombre: '', password: '', rol: 'lectura' })}>
+              <button className="btn" onClick={() => setNuevo({ username: '', nombre: '', password: '', rol: 'soporte' })}>
                 Agregar usuario
               </button>
             </div>
@@ -600,7 +762,7 @@ function Usuarios() {
                   <tr key={u.id} className={u.activo ? '' : 'inactivo'}>
                     <td>{u.username}</td>
                     <td>{u.nombre}</td>
-                    <td>{u.rol === 'admin' ? 'Administrador' : 'Solo lectura'}</td>
+                    <td>{ROLES[u.rol] ?? u.rol}</td>
                     <td>
                       {u.id !== user.id && (
                         <button className="btn-link" onClick={() => alternar(u)}>

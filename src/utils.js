@@ -85,3 +85,15 @@ export const fechaLocal = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+export const ROLES = { admin: 'Administrador', soporte: 'Soporte técnico' };
+
+// Fecha corta (sin hora)
+export const fmtFecha = (f) =>
+  f ? new Date(f).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+// Hora de inicio de un bloque de una hora: "lun 10 nov · 14:00"
+export const fmtHoraBloque = (f) =>
+  f
+    ? new Date(f).toLocaleString('es-MX', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+    : '—';

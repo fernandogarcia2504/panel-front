@@ -1080,3 +1080,112 @@ tr.inactivo td {
     grid-column: auto;
   }
 }
+
+/* ---------- InControl2: ciclo de datos de la SIM, inventario ---------- */
+.rol-usuario {
+  display: block;
+  line-height: 1.1;
+}
+.ciclo-sim {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.ciclo-sim-cab {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+.ciclo-sim-cab strong {
+  font-size: 1.35rem;
+}
+.ciclo-sim-pista {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--borde-suave);
+  overflow: hidden;
+}
+.ciclo-sim-pista > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+}
+/* Proyección al cierre: misma pista, tono tenue detrás del consumo real */
+.ciclo-sim-proy {
+  background: var(--acento-suave);
+  outline: 1px dashed var(--tenue);
+  outline-offset: -1px;
+}
+details.tarjeta > summary {
+  cursor: pointer;
+  list-style-position: outside;
+}
+details.tarjeta[open] > summary {
+  margin-bottom: 1rem;
+}
+.conciliacion {
+  margin-top: 2rem;
+}
+.filtros label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+}
+.inv-celda-sim {
+  white-space: nowrap;
+}
+.bitacora-lista td {
+  font-size: 0.85rem;
+}
+.chips-columna {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+.grupo-inventario {
+  border: none;
+  padding: 0;
+  margin: 0 0 1.1rem;
+}
+.grupo-inventario legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--texto);
+  margin-bottom: 0.5rem;
+}
+
+/* Flota con el indicador de SIM de InControl2: 5 celdas en una fila */
+.stats-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 900px) {
+  .stats-5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.codigo-scroll {
+  max-height: 360px;
+  overflow: auto;
+}
+.selector-flota select {
+  width: auto;
+  max-width: 220px;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  font-size: 0.85rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.intro-pestana {
+  margin: 0 0 1rem;
+}

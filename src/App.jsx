@@ -7,6 +7,12 @@ import Motocarro from './pages/Motocarro.jsx';
 import Operacion from './pages/Operacion.jsx';
 import Historico from './pages/Historico.jsx';
 import Configuracion from './pages/Configuracion.jsx';
+import Inventario from './pages/Inventario.jsx';
+
+function SoloAdmin({ children }) {
+  const { user } = useAuth();
+  return user?.rol === 'admin' ? children : <Navigate to="/" replace />;
+}
 
 function Protegida({ children }) {
   const { user, cargando } = useAuth();
@@ -31,6 +37,14 @@ export default function App() {
         <Route path="/operaciones/:id" element={<Operacion />} />
         <Route path="/historico" element={<Historico />} />
         <Route path="/configuracion" element={<Configuracion />} />
+        <Route
+          path="/inventario"
+          element={
+            <SoloAdmin>
+              <Inventario />
+            </SoloAdmin>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

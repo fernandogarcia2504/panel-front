@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { ROLES } from '../utils.js';
+import { SelectorFlota } from '../context/FlotaContext.jsx';
 
 // Tema: lo que eligió el usuario (guardado en este navegador) o, si nunca eligió, el del sistema
 function temaInicial() {
@@ -70,14 +72,19 @@ export default function Layout() {
             Flota
           </NavLink>
           <NavLink to="/historico">Histórico</NavLink>
+          {user?.rol === 'admin' && <NavLink to="/inventario">Inventario</NavLink>}
           <NavLink to="/configuracion">Configuración</NavLink>
         </nav>
         <div className="usuario">
+          <SelectorFlota />
           <BotonTema />
           <span className="avatar" aria-hidden="true">
             {inicial}
           </span>
-          <span className="nombre">{user?.nombre}</span>
+          <span className="nombre">
+            {user?.nombre}
+            <span className="muted pequeno rol-usuario">{ROLES[user?.rol] ?? ''}</span>
+          </span>
           <button className="btn-link" onClick={logout}>
             Salir
           </button>

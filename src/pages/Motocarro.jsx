@@ -3,11 +3,14 @@ import { api, qs } from '../api.js';
 import { usePeriodico, useRedundantes } from '../hooks.js';
 import { Cargando, EstadoChip, RedChip, Stat } from '../components/comunes.jsx';
 import BarraComposicion from '../components/BarraComposicion.jsx';
+import { Conciliacion, TarjetaRouter } from '../components/RouterIc2.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { fechaLocal, fmtBytes, fmtClave, fmtDur, fmtFechaHora, fmtMs, fmtPct, hace } from '../utils.js';
 
 export default function Motocarro() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const redundantes = useRedundantes();
   const [flota] = usePeriodico(() => api.get('/flota'), 15_000, [id]);
   const [ops, error] = usePeriodico(
@@ -33,7 +36,7 @@ export default function Motocarro() {
       <div className="encabezado">
         <div>
           <h1>{a.nombre}</h1>
-          {a.notas && <p className="muted subtitulo">{a.notas}</p>}
+          {(a.flota || a.notas) && <p className="muted subtitulo">{[a.flota, a.notas].filter(Boolean).join(' · ')}</p>}
         </div>
         <EstadoChip estado={a.estado} />
       </div>
@@ -71,6 +74,9 @@ export default function Motocarro() {
           <span>{a.enHorario ? 'En horario ahora' : fmtFechaHora(a.proxima?.inicio)}</span>
         </div>
       </div>
+
+      <h2>Router y SIM (InControl2)</h2>
+      <TarjetaRouter agenteId={id} admin={user?.rol === 'admin'} />
 
       <h2>Últimos 90 días</h2>
       <div className="stats">
@@ -125,6 +131,8 @@ export default function Motocarro() {
           </tbody>
         </table>
       </div>
+
+      <Conciliacion agenteId={id} />
     </section>
   );
 }
